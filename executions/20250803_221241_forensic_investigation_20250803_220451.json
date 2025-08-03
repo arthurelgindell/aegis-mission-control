@@ -1,0 +1,151 @@
+{
+  "execution_id": "forensic_investigation_20250803_220451",
+  "timestamp": "2025-08-03T22:04:51Z",
+  "task": "AEGIS V3 Forensic Investigation - Wrong Orchestrator Root Cause Analysis",
+  "investigation_type": "critical_system_malfunction",
+  "severity": "CRITICAL",
+  
+  "executive_summary": {
+    "finding": "System in split-brain state with two orchestrators running simultaneously",
+    "impact": "Missing consensus endpoints, broken agent status, inconsistent routing",
+    "root_cause": "Simplified debug orchestrator from /tmp/ started at 9:01 AM, blocking correct orchestrator from full port binding"
+  },
+  
+  "detailed_findings": {
+    "running_processes": {
+      "total_found": 3,
+      "processes": [
+        {
+          "pid": 87712,
+          "file": "/tmp/tri_agent_orchestrator_complete.py",
+          "started": "2025-08-03T09:01:50Z",
+          "port": "localhost:8040",
+          "type": "simplified_debug_version",
+          "size_bytes": 7054,
+          "md5": "c9e932cfde4667c9530d4cf1ba7b9c3a"
+        },
+        {
+          "pid": 18767,
+          "file": "tri_agent_orchestrator.py",
+          "started": "2025-08-03T20:06:09Z",
+          "port": "*:8040",
+          "type": "correct_full_version",
+          "size_bytes": 34343,
+          "md5": "9a377a5d5d68d36b0b16d52ef49aab4a",
+          "working_dir": "/Volumes/aya_SSD/aya_mission_control/services/orchestrator"
+        },
+        {
+          "pid": 89574,
+          "file": "/tmp/tri_agent_nl_interface.py",
+          "started": "2025-08-03T09:31:34Z",
+          "port": "8041",
+          "type": "natural_language_interface"
+        }
+      ]
+    },
+    
+    "port_conflicts": {
+      "8040": {
+        "status": "CONFLICT",
+        "listeners": [
+          {"pid": 87712, "binding": "127.0.0.1:8040"},
+          {"pid": 18767, "binding": "*:8040"}
+        ],
+        "impact": "Inconsistent request routing based on source IP"
+      },
+      "8041": {"status": "OK", "service": "NL Interface"},
+      "8055": {"status": "UNKNOWN", "service": "Unidentified"}
+    },
+    
+    "missing_functionality": {
+      "consensus_endpoints": {
+        "reason": "Not implemented in simplified /tmp/ version",
+        "code_exists": true,
+        "routes_exposed": false,
+        "references_in_code": 59
+      },
+      "agent_status_endpoints": {
+        "reason": "Only aggregate status in simplified version",
+        "expected": ["/agents/claude/status", "/agents/gemini/status", "/agents/codex/status"],
+        "actual": "404 Not Found"
+      },
+      "memory_cross_agent": {
+        "status": "By design - security isolation",
+        "workaround": "orchestrator agent pattern"
+      },
+      "sentinel_operations": {
+        "issue": "All operations rejected as UNKNOWN_OPERATION",
+        "supported": ["file_read", "file_write", "command", "analyze"],
+        "missing": "tri_agent operations not whitelisted"
+      }
+    },
+    
+    "service_audit_results": {
+      "healthy": ["redis", "sentinel", "aegis_api", "bridge", "metal", "metrics", "memory"],
+      "unhealthy": ["mlx_service"],
+      "compromised": ["tri_agent_orchestrator"]
+    }
+  },
+  
+  "root_cause_analysis": {
+    "sequence_of_events": [
+      "1. Debug orchestrator started from /tmp/ at 09:01 AM",
+      "2. Bound to localhost:8040 successfully",
+      "3. Correct orchestrator started at 20:06 PM",
+      "4. Could only bind to wildcard interface due to port conflict",
+      "5. Both continue running, causing split-brain condition"
+    ],
+    "why_it_happened": "Manual testing/debugging session not properly cleaned up",
+    "startup_mechanism": "Manual start from terminal, no automatic restart found"
+  },
+  
+  "impact_assessment": {
+    "functional_impact": [
+      "Consensus mechanisms inaccessible",
+      "Individual agent status unavailable",
+      "Inconsistent API responses based on request source",
+      "Missing routes return 404"
+    ],
+    "security_impact": "SENTINEL overly restrictive due to unknown operations",
+    "operational_impact": "System appears partially functional but missing critical features"
+  },
+  
+  "recommendations": {
+    "immediate": [
+      "Kill PID 87712 (/tmp/ orchestrator)",
+      "Kill PID 89574 (NL interface) if not needed",
+      "Restart correct orchestrator cleanly on port 8040",
+      "Verify all endpoints accessible"
+    ],
+    "long_term": [
+      "Implement port conflict detection in startup scripts",
+      "Add health check for expected endpoints",
+      "Create process monitoring to prevent duplicates",
+      "Document debug vs production configurations"
+    ]
+  },
+  
+  "evidence": {
+    "process_listing": "ps aux | grep tri_agent",
+    "port_bindings": "lsof -i:8040",
+    "file_comparison": "md5 hashes confirm different files",
+    "route_inspection": "Only 4 Flask routes in /tmp/ version",
+    "working_directories": "Confirm different execution contexts"
+  },
+  
+  "handover_context": {
+    "critical_finding": "Two orchestrators running is root cause of all missing functionality",
+    "next_session_priority": "Clean process termination and restart required",
+    "verification_steps": [
+      "After cleanup, test /consensus endpoint",
+      "Verify /agents/*/status endpoints",
+      "Confirm single process on port 8040"
+    ]
+  },
+  
+  "thread_usage": {
+    "tokens_used": "Approximately 75%",
+    "investigation_complete": true,
+    "handover_required": true
+  }
+}
