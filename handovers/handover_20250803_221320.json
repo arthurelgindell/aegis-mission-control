@@ -1,0 +1,114 @@
+{
+  "type": "handover",
+  "timestamp": "2025-08-03T22:12:00Z",
+  "thread_consumption": "78%",
+  "session_id": "forensic_investigation_orchestrator_conflict",
+  
+  "system_state": {
+    "services": {
+      "redis": "operational",
+      "sentinel": "operational",
+      "aegis_api": "operational",
+      "bridge": "operational",
+      "metal": "operational",
+      "metrics": "operational",
+      "memory": "operational",
+      "orchestrator": "COMPROMISED - dual instance conflict",
+      "mlx": "down"
+    },
+    "critical_issue": "Split-brain orchestrator state",
+    "working_directory": "/Volumes/aya_SSD/aya_mission_control",
+    "aegis_version": "V3"
+  },
+  
+  "investigation_summary": {
+    "core_finding": "Two orchestrator instances running simultaneously on port 8040",
+    "root_cause": "Debug version in /tmp/ started at 09:01 AM blocking production version",
+    "impact": [
+      "All consensus endpoints return 404",
+      "Individual agent status endpoints missing",
+      "Inconsistent API behavior based on request source",
+      "SENTINEL rejecting all operations as unknown"
+    ]
+  },
+  
+  "discovered_processes": {
+    "wrong_orchestrator": {
+      "pid": 87712,
+      "path": "/tmp/tri_agent_orchestrator_complete.py",
+      "port": "localhost:8040",
+      "status": "MUST BE KILLED"
+    },
+    "correct_orchestrator": {
+      "pid": 18767,
+      "path": "/services/orchestrator/tri_agent_orchestrator.py",
+      "port": "*:8040",
+      "status": "Keep but restart after cleanup"
+    },
+    "nl_interface": {
+      "pid": 89574,
+      "path": "/tmp/tri_agent_nl_interface.py",
+      "port": "8041",
+      "status": "Optional - assess need"
+    }
+  },
+  
+  "critical_actions_required": [
+    {
+      "priority": 1,
+      "action": "Kill wrong orchestrator",
+      "command": "kill -9 87712",
+      "reason": "Remove port conflict"
+    },
+    {
+      "priority": 2,
+      "action": "Kill current correct orchestrator",
+      "command": "kill -9 18767",
+      "reason": "Clean restart needed"
+    },
+    {
+      "priority": 3,
+      "action": "Start correct orchestrator",
+      "command": "cd /Volumes/aya_SSD/aya_mission_control/services/orchestrator && python3 tri_agent_orchestrator.py",
+      "reason": "Restore full functionality"
+    },
+    {
+      "priority": 4,
+      "action": "Verify endpoints",
+      "tests": [
+        "curl http://localhost:8040/consensus",
+        "curl http://localhost:8040/agents/claude/status",
+        "curl http://localhost:8040/status"
+      ]
+    }
+  ],
+  
+  "verification_checklist": [
+    "Single process on port 8040",
+    "Consensus endpoints accessible",
+    "Agent status endpoints return data",
+    "No /tmp/ orchestrators running",
+    "All 59 consensus code references accessible via API"
+  ],
+  
+  "file_locations": {
+    "mission_control": "/Volumes/aya_SSD/aya_mission_control",
+    "correct_orchestrator": "/Volumes/aya_SSD/aya_mission_control/services/orchestrator/tri_agent_orchestrator.py",
+    "github_repo": "https://github.com/arthurelgindell/aegis-mission-control",
+    "investigation_log": "executions/20250803_221241_forensic_investigation_20250803_220451.json"
+  },
+  
+  "context_for_next_session": {
+    "problem": "System running wrong orchestrator version causing missing features",
+    "solution": "Kill debug version, restart production version",
+    "expected_outcome": "All consensus and agent endpoints functional",
+    "test_command": "curl -X POST http://localhost:8040/consensus -H 'Content-Type: application/json' -d '{\"task\": {\"prompt\": \"test\"}, \"consensus_type\": \"majority\"}'"
+  },
+  
+  "additional_notes": [
+    "Memory service cross-agent sharing is by design, not a bug",
+    "SENTINEL needs tri-agent operations whitelisted after fix",
+    "MLX service needs separate investigation",
+    "Consider implementing process monitoring to prevent future conflicts"
+  ]
+}
