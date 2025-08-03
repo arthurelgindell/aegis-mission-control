@@ -1,0 +1,282 @@
+{
+  "type": "recovery_report",
+  "title": "AEGIS V3 System Recovery Report",
+  "date": "2025-08-03",
+  "timestamp": "2025-08-03T22:49:00Z",
+  "session_id": "aegis_recovery_from_complete_shutdown",
+  "report_type": "COMPREHENSIVE_SYSTEM_RECOVERY",
+  "status": "PARTIAL_SUCCESS",
+  
+  "executive_summary": {
+    "initial_condition": "All 8 AEGIS services DOWN - complete system recovery required",
+    "recovery_method": "Executed master startup script followed by manual intervention",
+    "final_status": "9/12 services operational, split-brain resolved, agents non-responsive",
+    "success_rate": "75%"
+  },
+  
+  "recovery_timeline": [
+    {
+      "time": "22:43:02",
+      "action": "Started tri-agent system via start_tri_agent_fixed.sh",
+      "result": "Services started but split-brain detected"
+    },
+    {
+      "time": "22:43:50",
+      "action": "Verified system status via aegis_status.sh",
+      "result": "9/12 services UP, 3 DOWN"
+    },
+    {
+      "time": "22:44:00",
+      "action": "Discovered split-brain condition on port 8040",
+      "result": "Two orchestrators running: PID 87712 (debug) and PID 36452 (correct)"
+    },
+    {
+      "time": "22:44:10",
+      "action": "Killed debug orchestrator PID 87712",
+      "result": "Split-brain resolved, single orchestrator running"
+    },
+    {
+      "time": "22:45:00",
+      "action": "Tested orchestrator endpoints",
+      "result": "Agent timeouts, consensus endpoints 404"
+    },
+    {
+      "time": "22:46:00",
+      "action": "Analyzed code structure",
+      "result": "Consensus methods exist but not exposed as Flask routes"
+    }
+  ],
+  
+  "services_status": {
+    "operational": {
+      "redis": {
+        "port": 6380,
+        "status": "UP",
+        "health": "PONG confirmed",
+        "auth": "AYA_BULLETPROOF_MEMORY_2024"
+      },
+      "sentinel": {
+        "port": 8099,
+        "status": "UP",
+        "version": "v2.1-HARDENED",
+        "security": "Overly restrictive - needs whitelist update"
+      },
+      "aegis_api": {
+        "port": 8100,
+        "status": "UP",
+        "endpoint": "/healthz"
+      },
+      "enhanced_bridge": {
+        "port": 8025,
+        "status": "UP",
+        "security_layers": 8
+      },
+      "metal_translator": {
+        "port": 8020,
+        "status": "UP",
+        "config": "Metal config healthy"
+      },
+      "metrics_collector": {
+        "port": 8090,
+        "status": "UP"
+      },
+      "memory_service": {
+        "port": 8035,
+        "status": "UP",
+        "architecture": "Orchestrator pattern working"
+      },
+      "tri_agent_orchestrator": {
+        "port": 8040,
+        "status": "UP with issues",
+        "pid": 37528,
+        "location": "/services/orchestrator/tri_agent_orchestrator.py",
+        "problems": ["Agent initialization timeouts", "Missing Flask routes"]
+      },
+      "tinyllama_classifier": {
+        "port": 8055,
+        "status": "UP"
+      }
+    },
+    "non_operational": {
+      "mistral_reasoning": {
+        "port": 8065,
+        "status": "DOWN",
+        "required_action": "Start service manually"
+      },
+      "translation_service": {
+        "port": 8070,
+        "status": "DOWN",
+        "required_action": "Start service manually"
+      },
+      "service_dashboard": {
+        "port": 8085,
+        "status": "DOWN",
+        "required_action": "Start dashboard service"
+      }
+    }
+  },
+  
+  "split_brain_resolution": {
+    "issue": "Two orchestrator instances competing for port 8040",
+    "root_cause": "Debug orchestrator from /tmp/ not cleaned up from testing",
+    "resolution_steps": [
+      "Identified competing processes via lsof -i:8040",
+      "Killed debug orchestrator PID 87712",
+      "Verified single orchestrator running"
+    ],
+    "verification": {
+      "before": {
+        "process_count": 2,
+        "pids": [87712, 36452],
+        "conflict": "localhost vs wildcard binding"
+      },
+      "after": {
+        "process_count": 1,
+        "pid": 37528,
+        "binding": "*:8040"
+      }
+    }
+  },
+  
+  "functionality_analysis": {
+    "working": {
+      "core_services": "All infrastructure services operational",
+      "basic_routing": "Endpoint exists but timing out",
+      "memory_architecture": "Orchestrator pattern confirmed working",
+      "security": "SENTINEL active but overly restrictive"
+    },
+    "not_working": {
+      "agent_responses": {
+        "issue": "All agent queries timing out after 30 seconds",
+        "error": "TimeoutError in concurrent.futures",
+        "impact": "Cannot verify agent functionality"
+      },
+      "consensus_endpoints": {
+        "issue": "404 Not Found on all consensus routes",
+        "cause": "Methods exist but not registered as Flask routes",
+        "evidence": "53 consensus references in code, only 4 Flask routes exposed"
+      },
+      "agent_initialization": {
+        "issue": "Agents not properly initialized",
+        "evidence": "Only 'claude' process found running",
+        "missing": "gemini and codex agent processes"
+      }
+    }
+  },
+  
+  "code_verification": {
+    "orchestrator_analysis": {
+      "file": "/services/orchestrator/tri_agent_orchestrator.py",
+      "size": "34,343 bytes",
+      "consensus_references": 53,
+      "consensus_methods": [
+        "achieve_consensus",
+        "_unanimous_consensus", 
+        "_majority_consensus",
+        "_weighted_consensus",
+        "_execute_with_consensus"
+      ],
+      "exposed_routes": ["/health", "/status", "/route", "/agents"],
+      "missing_routes": [
+        "/consensus",
+        "/agents/{agent}/status",
+        "/execute_consensus",
+        "/routes"
+      ]
+    },
+    "api_configuration": {
+      "anthropic": "3 API keys configured and loaded",
+      "openai": "Not configured (commented out)",
+      "gemini": "Not found in configuration"
+    }
+  },
+  
+  "error_analysis": {
+    "orchestrator_errors": [
+      {
+        "endpoint": "/status",
+        "error": "500 Internal Server Error",
+        "cause": "Agent query timeout after 5 seconds"
+      },
+      {
+        "endpoint": "/route",
+        "error": "TimeoutError",
+        "cause": "Agent execution timeout after 30 seconds"
+      }
+    ],
+    "missing_features": [
+      "Consensus route registration",
+      "Individual agent status endpoints",
+      "Routes discovery endpoint",
+      "Agent health monitoring"
+    ]
+  },
+  
+  "recommendations": {
+    "critical": [
+      {
+        "priority": 1,
+        "action": "Debug agent initialization process",
+        "reason": "Core functionality blocked by timeouts"
+      },
+      {
+        "priority": 2,
+        "action": "Add Flask route decorators for consensus methods",
+        "reason": "Features exist but inaccessible"
+      },
+      {
+        "priority": 3,
+        "action": "Configure OPENAI and GEMINI API keys",
+        "reason": "Required for tri-agent functionality"
+      }
+    ],
+    "important": [
+      "Start individual agent processes manually",
+      "Update SENTINEL whitelist for tri-agent operations",
+      "Implement agent health monitoring",
+      "Create validation script for startup"
+    ],
+    "enhancement": [
+      "Add routes discovery endpoint (/routes)",
+      "Implement process monitoring to prevent split-brain",
+      "Document internal vs exposed methods",
+      "Create agent initialization diagnostics"
+    ]
+  },
+  
+  "system_health_score": {
+    "infrastructure": "90% - Core services operational",
+    "orchestration": "40% - Running but agents not responding",
+    "api_coverage": "25% - Most endpoints missing or failing",
+    "overall": "52% - Partial functionality restored"
+  },
+  
+  "artifacts_created": [
+    {
+      "type": "execution_log",
+      "path": "executions/20250803_224723_aegis_recovery_execution_20250803_224700.json",
+      "github": "https://github.com/arthurelgindell/aegis-mission-control/blob/main/executions/20250803_224723_aegis_recovery_execution_20250803_224700.json"
+    },
+    {
+      "type": "recovery_report",
+      "path": "handovers/aegis_v3_recovery_report_20250803_224900.json",
+      "github": "To be uploaded"
+    }
+  ],
+  
+  "next_session_priority": {
+    "task": "Fix agent initialization and add consensus Flask routes",
+    "blockers": [
+      "Agent timeout preventing functionality verification",
+      "Missing API keys for gemini and codex",
+      "Flask routes not registered for consensus"
+    ],
+    "expected_outcome": "Full tri-agent functionality with consensus mechanisms"
+  },
+  
+  "recovery_confidence": {
+    "assessment": "High confidence in diagnosis, medium confidence in current state stability",
+    "reasoning": "Split-brain successfully resolved but agent layer non-functional",
+    "risk": "System may appear working but lacks core tri-agent capabilities"
+  }
+}
